@@ -1,0 +1,49 @@
+# NQ sweep specification. Base config = config/nq_default.yaml (the registered hypothesis).
+# Stage 1 mode "ofat" varies one axis at a time around the base — diagnostic, cheap, hard
+# to overfit. Stage 2: switch mode to "random" (or "full" on a narrowed axis set) AFTER
+# reviewing OFAT output. Sessions are tested by restricting sessions.trade per combo.
+
+mode: ofat            # ofat | random | full
+random_samples: 250
+max_combos: 2000
+seed: 11
+
+dev_start: "2025-01-01"
+dev_end: "2026-12-31"
+holdouts:
+  - {name: "2022_2024", start: "2022-01-01", end: "2024-12-31"}
+  - {name: "pre_2022",  start: "2000-01-01", end: "2021-12-31"}
+
+# rejection rules (pre-registered)
+min_trades: 40
+low_sample: 80
+wr_floor: 0.70
+min_segment_trades: 15
+top2_share_max: 0.35
+slip_eval: 1
+slip_stress: 2
+
+axes:
+  range.window_minutes: [45, 60, 90, 120, 180]
+  range.method: [rolling, adaptive, session]
+  range.min_width_points: [30, 40, 50, 60, 75, 100]
+  filters.max_day_move_pct: [0.3, 0.4, 0.5, 0.6, 0.75]
+  filters.max_range_vs_prior_atr: [0.15, 0.2, 0.25, 0.3, 0.4, 0.5]
+  filters.max_vwap_slope_points: [5, 10, 15, 20]
+  filters.min_mid_crossings: [2, 3, 4, 6]
+  filters.extreme_extension_points: [10, 15, 20, null]
+  entry.type: [A, B, C]
+  entry.edge_def: [absolute, pct, vah_val, hybrid]
+  entry.edge_pct: [0.10, 0.15, 0.20]
+  entry.max_overshoot_points: [5, 10, 15]
+  exit.tp_points: [10, 12.5, 15, 20, 25]
+  exit.tp_mode: [fixed, mid, poc, opposite_25]
+  exit.stop_model: [edge_plus, excursion_plus, range_frac]
+  exit.stop_buffer_points: [5, 7.5, 10]
+  exit.invalidate_close_outside: [false, true]
+  sessions.trade:
+    - [asia]
+    - [london_early]
+    - [ny_morning]
+    - [ny_lunch_pm]
+    - [asia, london_early, ny_morning, ny_lunch_pm]

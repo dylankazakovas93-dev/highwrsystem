@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+out/
+# real market data stays local — never commit it
+data/*
+!data/README.md
+!data/news_template.csv
