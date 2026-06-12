@@ -107,9 +107,11 @@ class FiltersCfg:
 @dataclass
 class EntryCfg:
     type: str = "A"               # A market-on-reclaim-close | B limit-on-retest | C micro-swing-break stop
+    sides: list[str] = field(default_factory=lambda: ["long", "short"])
     edge_def: str = "pct"         # absolute | pct | vah_val | hybrid
     edge_pct: float = 0.10        # zone depth as a fraction of range width (pct/hybrid)
     max_overshoot_points: float = 10.0   # probe beyond box edge above this => breakout, cancel setup
+    min_overshoot_points: float = 0.0    # probe must exceed the edge by at least this (real failed break)
     probe_ttl_bars: int = 30      # reclaim must occur within this many bars of probe start
     reclaim_bars: int = 1         # consecutive closes back inside required
     retest_ttl_bars: int = 15     # entry B: limit order lifetime

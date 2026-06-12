@@ -241,6 +241,9 @@ def run_backtest(df: pd.DataFrame, cfg: Config, slippage_ticks: Optional[int] = 
 
     trades: list[Trade] = []
     skips: list[Skip] = []
+    sides_enabled = tuple(
+        s for s, name in ((+1, "long"), (-1, "short")) if name in ent.sides
+    )
     states = {+1: _ProbeState(), -1: _ProbeState()}
 
     n = len(df)
@@ -328,7 +331,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config, slippage_ticks: Optional[int] = 
             for st in states.values():
                 st.reset()
 
-        for s in (+1, -1):
+        for s in sides_enabled:
             st = states[s]
             box_ok = rv.valid[t]
             bh, bl = rv.box_high[t], rv.box_low[t]
@@ -398,6 +401,11 @@ def run_backtest(df: pd.DataFrame, cfg: Config, slippage_ticks: Optional[int] = 
                 continue
             if news_blocked[entry_start]:
                 skips.append(Skip(idx[t], "long" if s > 0 else "short", ["news"]))
+                continue
+
+            overshoot = max(0.0, (probe_extreme - edge) if s < 0 else (edge - probe_extreme))
+            if overshoot < ent.min_overshoot_points:
+                skips.append(Skip(idx[t], "long" if s > 0 else "short", ["overshoot_too_small"]))
                 continue
 
             fails = check_filters(t, s, snap_local)
@@ -505,7 +513,7 @@ def run_backtest(df: pd.DataFrame, cfg: Config, slippage_ticks: Optional[int] = 
                 box_high=float(snap_local.box_high), box_low=float(snap_local.box_low),
                 box_width=float(snap_local.width), box_mid=float(snap_local.mid),
                 probe_extreme=float(probe_extreme),
-                overshoot_points=float(max(0.0, s * (edge - probe_extreme))),
+                overshoot_points=float(overshoot),
                 crossings=int(x),
                 vwap_slope=float(vwap_slope[t]), day_move_pct=float(day_move[t]),
                 prior_day_atr=float(prior_atr[t]),
