@@ -131,9 +131,11 @@ class ExitCfg:
     min_tp_points: float = 15.0   # floor for dynamic tp modes
     require_target_inside: bool = True
     target_inside_buffer_points: float = 0.0   # target must clear opposite edge by this much
-    stop_model: str = "edge_plus"              # edge_plus | excursion_plus | range_frac
+    stop_model: str = "edge_plus"              # edge_plus | excursion_plus | range_frac | fixed | rr
     stop_buffer_points: float = 7.5
     stop_range_frac: float = 0.35
+    stop_fixed_points: float = 25.0            # stop_model == "fixed": stop this many pts from entry
+    rr: float = 0.6                            # stop_model == "rr": stop = tp_distance / rr  (reward:risk)
     max_stop_points: float = 25.0
     stop_cap_mode: str = "clamp"               # clamp | skip
     min_stop_points: float = 3.0
@@ -264,8 +266,10 @@ def validate_config(cfg: Config) -> None:
         problems.append(f"entry.edge_def '{e.edge_def}' invalid")
     if x.tp_mode not in ("fixed", "mid", "poc", "opposite_25"):
         problems.append(f"exit.tp_mode '{x.tp_mode}' invalid")
-    if x.stop_model not in ("edge_plus", "excursion_plus", "range_frac"):
+    if x.stop_model not in ("edge_plus", "excursion_plus", "range_frac", "fixed", "rr"):
         problems.append(f"exit.stop_model '{x.stop_model}' invalid")
+    if x.stop_model == "rr" and x.rr <= 0:
+        problems.append("exit.rr must be > 0")
     if x.tp_mode == "fixed" and x.tp_points > r.max_width_points:
         problems.append("exit.tp_points exceeds range.max_width_points — every trade would be skipped")
     names = [s.name for s in cfg.sessions.definitions]

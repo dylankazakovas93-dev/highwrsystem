@@ -289,22 +289,8 @@ def run_backtest(df: pd.DataFrame, cfg: Config, slippage_ticks: Optional[int] = 
         fails: list[str] = []
         edge = snap.box_high if s < 0 else snap.box_low
         opposite = snap.box_low if s < 0 else snap.box_high
-        if ext.stop_model == "edge_plus":
-            stop_px = edge - s * ext.stop_buffer_points
-        elif ext.stop_model == "excursion_plus":
-            stop_px = probe_extreme - s * ext.stop_buffer_points
-        else:  # range_frac
-            stop_px = entry_px - s * ext.stop_range_frac * snap.width
-        stop_dist = s * (entry_px - stop_px)
-        if stop_dist > ext.max_stop_points:
-            if ext.stop_cap_mode == "skip":
-                fails.append("stop_too_wide")
-            stop_px = entry_px - s * ext.max_stop_points
-            stop_dist = ext.max_stop_points
-        if stop_dist < ext.min_stop_points:
-            stop_px = entry_px - s * ext.min_stop_points
-            stop_dist = ext.min_stop_points
 
+        # target first (the "rr" stop model is derived from the target distance)
         if ext.tp_mode == "fixed":
             tp_px = entry_px + s * ext.tp_points
         elif ext.tp_mode == "mid":
@@ -321,6 +307,26 @@ def run_backtest(df: pd.DataFrame, cfg: Config, slippage_ticks: Optional[int] = 
             inside_ok = s * ((opposite - s * ext.target_inside_buffer_points) - tp_px) >= -1e-9
             if not inside_ok:
                 fails.append("target_outside_range")
+
+        if ext.stop_model == "edge_plus":
+            stop_px = edge - s * ext.stop_buffer_points
+        elif ext.stop_model == "excursion_plus":
+            stop_px = probe_extreme - s * ext.stop_buffer_points
+        elif ext.stop_model == "range_frac":
+            stop_px = entry_px - s * ext.stop_range_frac * snap.width
+        elif ext.stop_model == "fixed":
+            stop_px = entry_px - s * ext.stop_fixed_points
+        else:  # rr: stop = tp_distance / rr  (small rr => wide stop => high win rate)
+            stop_px = entry_px - s * (max(tp_dist, 1e-9) / ext.rr)
+        stop_dist = s * (entry_px - stop_px)
+        if stop_dist > ext.max_stop_points:
+            if ext.stop_cap_mode == "skip":
+                fails.append("stop_too_wide")
+            stop_px = entry_px - s * ext.max_stop_points
+            stop_dist = ext.max_stop_points
+        if stop_dist < ext.min_stop_points:
+            stop_px = entry_px - s * ext.min_stop_points
+            stop_dist = ext.min_stop_points
         return stop_px, tp_px, fails
 
     while t < n:
