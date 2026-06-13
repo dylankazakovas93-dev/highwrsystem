@@ -42,6 +42,33 @@ that does not properly enforce the (very tight, ~7%-of-range) stop, i.e.
 look-ahead / favorable intrabar ordering. A genuine 12:1 reward:risk system at 55%
 WR would imply PF ≈ 15 and Sharpe ≈ 15, which are not realistic.
 
+## Update: realistic fills kill the edge (this is the real conclusion)
+
+My first pass fixed the document's stop-leak bug but kept an *entry* bug: it
+filled at the exact R3/S3 level even when the 09:30 bar had already **opened
+past** the level. That happens on **553 of 965 trades (57%)** — by 09:30 the
+"first touch" is frequently a level price already blew through (often on the
+08:30 data releases). Filling those at the level is fantasy.
+
+Realistic stop-entry fill = worse of (level, trigger-bar open) + 2 pt slippage,
+stop/target unchanged, manage from next bar, tie=stop:
+
+| Config | Trades | WR | PF | Net R |
+|---|---|---|---|---|
+| Literal fill at R3/S3 (optimistic) | 965 | 32.8% | 5.86 | +3150 |
+| **Realistic fill, all trades** | 965 | **23.8%** | **0.61** | **−1087** |
+| Realistic, clean only (drop 553 gap-throughs) | 412 | 13.8% | 1.33 | +163 |
+
+The "PF ~6" was never real — it required magic fills at the level on gap days.
+Under tradable fills the strategy is **net negative**. Restricting to only the
+trades where price had *not* already gapped past the level leaves a fragile
+PF 1.33 (4 of 7 years flat-to-negative; carried entirely by 2022/2023/2025),
+and that excludes commissions and stop slippage, which would likely push it
+below breakeven. There is no durable edge here.
+
+(These numbers were independently reproduced to the cent by a separate
+implementation — strong cross-validation of the logic.)
+
 ## Bottom line
 
 The mechanical rules are well-specified and I implemented them faithfully; the

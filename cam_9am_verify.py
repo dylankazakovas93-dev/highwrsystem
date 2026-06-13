@@ -82,7 +82,14 @@ def _data():
         _CACHE["cand"] = four_hour_candles(df)
     return _CACHE["df"], _CACHE["cand"]
 
-def run(intrabar="pessimistic", manage_from_next=False, use_filters=True, diag=None):
+def run(intrabar="pessimistic", manage_from_next=False, use_filters=True, diag=None,
+        entry_model="literal", slippage=0.0, clean_only=False):
+    # entry_model: "literal" -> fill exactly at R3/S3 (optimistic);
+    #              "realistic" -> stop-entry: fill at the WORSE of level vs the
+    #              trigger bar's open (so gap-through bars fill at the open),
+    #              then add `slippage` points adverse.
+    # clean_only: drop trades whose trigger bar already opened past the level
+    #             (the "gap-through / stale fill" trades).
     df, cand = _data()
 
     # the 04:00-08:00 ET candle is the one whose start hour == 4
@@ -147,10 +154,25 @@ def run(intrabar="pessimistic", manage_from_next=False, use_filters=True, diag=N
             continue
         cnt["triggered"] += 1
 
+        trig_open = win.loc[entry_idx, "open"]
         if side == "long":
-            entry = R3; stop = R3 - SM*Base; target = R3 + TM*Base
+            gap_through = trig_open > R3
+            stop = R3 - SM*Base; target = R3 + TM*Base
+            if entry_model == "realistic":
+                entry = max(R3, trig_open) + slippage
+            else:
+                entry = R3
         else:
-            entry = S3; stop = S3 + SM*Base; target = S3 - TM*Base
+            gap_through = trig_open < S3
+            stop = S3 + SM*Base; target = S3 - TM*Base
+            if entry_model == "realistic":
+                entry = min(S3, trig_open) - slippage
+            else:
+                entry = S3
+        if gap_through:
+            cnt["gap_through"] = cnt.get("gap_through", 0) + 1
+        if clean_only and gap_through:
+            continue
 
         # manage from entry bar through 11:59 ET (force flat at 12:00)
         mgmt = g[(g["et"] >= win.loc[entry_idx,"et"]) & (g["hm"] <= 11*60+59)]
@@ -224,22 +246,37 @@ def report(t, label):
     for d,r in by.iterrows():
         print(f"   {d:9s} {r['wr']*100:5.1f}%  (n={int(r['n'])})")
 
+def report_by_year(t, label):
+    print(f"\n===== {label} =====")
+    if len(t)==0:
+        print("no trades"); return
+    t=t.copy(); t["year"]=pd.to_datetime(t["date"]).dt.year
+    print(f"{'Year':<6}{'Trades':>7}{'WR':>8}{'AvgWinPts':>11}{'PF':>8}{'NetR':>10}")
+    for y,g in t.groupby("year"):
+        n=len(g); wr=(g['r']>0).mean()
+        avgwin=g.loc[g['pnl_pts']>0,'pnl_pts'].mean()
+        gw=g.loc[g['r']>0,'r'].sum(); gl=-g.loc[g['r']<0,'r'].sum()
+        pf=gw/gl if gl>0 else float('inf')
+        print(f"{y:<6}{n:>7}{wr*100:>7.2f}%{avgwin:>11.2f}{pf:>8.2f}{g['r'].sum():>10.2f}")
+    n=len(t); wr=(t['r']>0).mean()
+    avgwin=t.loc[t['pnl_pts']>0,'pnl_pts'].mean()
+    gw=t.loc[t['r']>0,'r'].sum(); gl=-t.loc[t['r']<0,'r'].sum()
+    pf=gw/gl if gl>0 else float('inf')
+    print(f"{'ALL':<6}{n:>7}{wr*100:>7.2f}%{avgwin:>11.2f}{pf:>8.2f}{t['r'].sum():>10.2f}")
+    print(f"exit mix: {t['outcome'].value_counts().to_dict()}")
+
 if __name__ == "__main__":
+    # --- literal (optimistic) fill, for reference ---
     d = {}
-    t1 = run("pessimistic", manage_from_next=False, diag=d)
-    report(t1, "A: manage-from-entry-bar, pessimistic ties (strictest)")
-    print("FUNNEL:", d)
+    t2 = run("pessimistic", manage_from_next=True, diag=d)
+    report(t2, "LITERAL fill at R3/S3, next-bar mgmt, tie=stop (optimistic)")
+    print(f"gap-through trades (open already past level): {d.get('gap_through')}/{len(t2)}")
 
-    t2 = run("pessimistic", manage_from_next=True)
-    report(t2, "B: manage-from-NEXT-bar, pessimistic ties (fair entry)")
+    # --- realistic stop-entry fill: worse(level, trig open) + 2pt slippage ---
+    tr = run("pessimistic", manage_from_next=True, entry_model="realistic", slippage=2.0)
+    report_by_year(tr, "REALISTIC fill (worse of level/open + 2pt slip), ALL trades")
 
-    t3 = run("optimistic", manage_from_next=True)
-    report(t3, "C: manage-from-NEXT-bar, optimistic ties (lenient)")
-
-    dnf = {}
-    t4 = run("pessimistic", manage_from_next=True, use_filters=False, diag=dnf)
-    report(t4, "D: NO filters, manage-from-NEXT-bar (trade-count check)")
-    print("FUNNEL(no filters):", dnf)
-
-    t2.to_csv("work/trades_main.csv", index=False)
-    print("\nsaved work/trades_main.csv")
+    # --- realistic + exclude gap-through trades entirely ---
+    tc = run("pessimistic", manage_from_next=True, entry_model="realistic",
+             slippage=2.0, clean_only=True)
+    report_by_year(tc, "REALISTIC fill + CLEAN ONLY (drop gap-through), 2pt slip")
