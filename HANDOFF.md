@@ -83,9 +83,24 @@ by ≤ ~1.5 points and net by ≤ ~15%. Call it **verified** if all of these hol
 1. Overall win rate **83–86%**, every individual year **≥ 78%** (2020 is the weakest).
 2. Every year profitable **except 2020** (the COVID-whipsaw year may be ~breakeven/negative).
 3. Overall **PF ≥ 1.25**; ~**90–105 trades/year**.
-4. The **fade** (same rules, opposite direction) is **net negative** every year.
+4. The **fade** (same rules, opposite direction) is **net-negative overall and in every year
+   except 2020** — positive only in that whipsaw year, which is also continuation's only
+   losing year (the two are near-perfect mirror images; that coherence is the point).
 5. Results are **not driven by 1–2 trades** and survive **2 ticks/side** slippage
    (win rate should barely move; this strategy's stop is hit only ~11% of the time).
+
+> NOTE (correction): an earlier draft claimed the fade "loses every year." That was wrong —
+> verified result is fade positive in 2020 only, negative 2021→2026. Independent verification
+> (Codex, 2026-06) reproduced the continuation at 85.3% WR / PF 1.38 and flagged this; both
+> engines agree. Also expect a ~3-trade difference in the exit-reason mix depending on whether
+> the target fills at the limit (594 TP) or requires trading through by 1 tick (591 TP) — see
+> `tp_extra_ticks` note below.
+
+> EDGE MARGIN (read before trading): the fade also runs a high win rate (~77.7%) because the
+> small-TP/wide-stop structure yields high hit rates in *either* direction. The edge is the
+> ~7-point WR gap (continuation 84.9% vs fade 77.7%), not the win rate itself. Breakeven WR at
+> this payoff ratio is ~83%, so continuation clears it by only ~1.6 points — the edge is real
+> but the margin is thin, so win-rate stability and execution costs are the dominant risks.
 
 ## Things most likely to break a reproduction (check these first if you diverge)
 - Using **Wilder's ATR (`ta.atr`)** instead of **SMA(14) of TR** — most common cause.
@@ -98,6 +113,8 @@ by ≤ ~1.5 points and net by ≤ ~15%. Call it **verified** if all of these hol
 - Filling the entry on the 11:00 bar instead of the **next** bar's open.
 
 ## After a green light — Pine v6 build notes (for later, not now)
+- Add a `tp_extra_ticks` input (default 0 = fill at limit; set 1 = require trade-through by a
+  tick, matching `rangefade/engine.py`). This bridges the only mechanical discrepancy found.
 - Implement as a `strategy` (or `indicator` with alerts). It is fully codeable.
 - ATR: `request.security(syminfo.tickerid, "30", ta.sma(ta.tr, 14))` and the same on "15",
   using the **prior day's last completed value** (offset so there's no repaint/lookahead).
