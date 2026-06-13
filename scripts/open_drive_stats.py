@@ -22,7 +22,8 @@ def atr30_prior(df):
     return pd.Series(daily).shift(1)
 
 
-def run(df, snapshot, gate, rr, direction='cont', tp_mult=1.0, flat='15:55'):
+def run(df, snapshot, gate, rr, direction='cont', tp_mult=1.0, flat='15:55', max_sl_pts=None):
+    """stop = tp_dist/rr, optionally capped at max_sl_pts (e.g. 200 = $4k on 1 NQ contract)."""
     o = df['open'].to_numpy(float); h = df['high'].to_numpy(float)
     l = df['low'].to_numpy(float); c = df['close'].to_numpy(float)
     idx = df.index; mins = (idx.hour * 60 + idx.minute).to_numpy()
@@ -58,6 +59,8 @@ def run(df, snapshot, gate, rr, direction='cont', tp_mult=1.0, flat='15:55'):
             continue
         entry = market_fill(s, o[ent_i], SLIP)
         tp_dist = tp_mult * atr; sl_dist = tp_dist / rr
+        if max_sl_pts is not None:
+            sl_dist = min(sl_dist, max_sl_pts)
         tp = entry + s * tp_dist; stop = entry - s * sl_dist
         bx = run_bracket(s, ent_i, entry, stop, tp, o, h, l, c, flat_i, TICK, SLIP, 1, 'loss')
         pnl = s * (bx.exit_px - entry) * PV - COMM
@@ -101,3 +104,19 @@ for snap in ['11:00', '12:00']:
             cells.append(f"{s.pnl.gt(0).mean()*100:>4.0f}%" if len(s) >= 10 else f"{'n'+str(len(s)):>5}")
         print(f"{gate:>5} {len(t):>5} {len(t)/7:>4.0f} | " + " ".join(cells) +
               f" | {t.pnl.gt(0).mean()*100:>5.1f}% {t.pnl.mean():>7.0f}")
+
+# ---- Table 3: hard stop cap (max SL the trader can stomach) ----
+for gate in [1.0, 2.0]:
+    print("\n" + "=" * 96)
+    print(f"HARD STOP CAP — continuation, 11:00, gate={gate}xATR30, TP=0.5xATR30, stop=min(10xTP, CAP)")
+    print("=" * 96)
+    print(f"{'cap':>5} {'n':>5} | " + " ".join(f"{y:>4}" for y in YEARS) +
+          f" | {'WR':>6} {'exp$':>6} {'avgW':>6} {'avgL':>6} {'worst':>7} {'net$':>8}")
+    for cap in [100, 150, 200, 300, None]:
+        t = run(dall, '11:00', gate, 0.1, 'cont', tp_mult=0.5, max_sl_pts=cap)
+        if t.empty:
+            continue
+        w = t.pnl > 0
+        cells = [f"{t[t.y==y].pnl.gt(0).mean()*100:>3.0f}%" if len(t[t.y==y]) >= 10 else f"{'n'+str(len(t[t.y==y])):>4}" for y in YEARS]
+        print(f"{(cap or 'none'):>5} {len(t):>5} | " + " ".join(cells) +
+              f" | {w.mean()*100:>5.1f}% {t.pnl.mean():>6.0f} {t[w].pnl.mean():>6.0f} {t[~w].pnl.mean():>6.0f} {t.pnl.min():>7.0f} {t.pnl.sum():>8.0f}")

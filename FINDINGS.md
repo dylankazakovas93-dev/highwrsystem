@@ -30,14 +30,26 @@ only genuine trend days; raising 1.0→2.5× lifts WR 71%→76%), and (2) a *mod
 (0.5×ATR; shrinking TP 1.0→0.5× lifts WR 71%→86%). 11:00 beats 12:00 by ~6 WR points at
 every setting (more afternoon left for the trend to extend).
 
-**The honest catch — negative skew.** The 10×ATR stop is almost never hit (≈0.4% of
-trades), but reversal days that fade to the 15:55 flat cost multiples of a win: at the best
-config avg win +$495 vs avg loss −$2,121, worst −$7,237. Net positive (+$124/trade), but
-this is a "frequent small wins, rare large loss" profile, NOT bounded downside. A single
-−$7k day ends a $2k prop account on 1 contract, so **the wide-stop 85% version is for a
-personal account with real capital, not a prop buffer.** Tightening the stop (higher RR)
-caps the loss but drops WR toward 58–66% — you can have 85% WR or bounded downside with
-this structure, not both. Reproduce with `scripts/open_drive_stats.py`.
+**The 10×ATR stop is almost never hit (≈0.4% of trades), so it can be CAPPED cheaply.**
+Replacing the 10×ATR stop with a hard 200-pt cap costs only 0.6% win rate (85.8% → 85.2%)
+and roughly halves the worst loss (−$7,237 → −$4,010). Capping schedule (gate 2.0, TP 0.5):
+
+| stop cap | overall WR | worst loss | exp/trade |
+|---|---|---|---|
+| 200 pts | 85.2% | −$4,010 | +$80 |
+| 150 pts | 84.8% | −$3,010 | +$89 |
+| 100 pts | 82.0% | −$2,010 | +$86 |
+
+**Practical setup:** wait to 11:00 ET; if |move from 9:30 open| ≥ 2×ATR30, enter in that
+direction; TP 0.5×ATR; **stop 200 pts (or 150)**; flat 15:55; one trade/day. ~85% WR,
+stable every year, worst day ≈ −$4k.
+
+**The honest catch — negative skew (bounded, not eliminated).** Even capped, avg win ≈$490
+vs avg loss ≈$2,300: frequent small wins, occasional bounded-but-large loss. Net positive
+(+$80/trade). At $4k risk this is a funded/personal-account setup; still too big for a $2k
+prop buffer (a 100-pt/$2k cap holds 82% WR if a prop-sized version is needed). You can have
+85% WR or a tight prop stop, not both. Reproduce: `scripts/open_drive_stats.py` (sweeps)
+and the capped-stop sweep in the commit history.
 
 ---
 
