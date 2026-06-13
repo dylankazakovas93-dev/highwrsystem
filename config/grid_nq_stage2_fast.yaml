@@ -1,0 +1,49 @@
+# Stage 2 (fast): focused interaction sweep over the OFAT-flagged directions, run on
+# 2023-2026 only (dev = 2025-2026, holdout = 2023-2024). The thesis prioritizes recent
+# regime; full 2020-2026 was already swept one-axis-at-a-time (OFAT) to zero survivors.
+# Purpose here: catch any multi-axis INTERACTION that single-axis OFAT could miss.
+
+mode: random
+random_samples: 90
+max_combos: 2000
+seed: 29
+
+dev_start: "2025-01-01"
+dev_end: "2026-06-07"
+holdouts:
+  - {name: "2023_2024", start: "2023-01-01", end: "2024-12-31"}
+
+min_trades: 40
+low_sample: 80
+wr_floor: 0.70
+min_segment_trades: 15
+top2_share_max: 0.35
+slip_eval: 1
+slip_stress: 2
+
+axes:
+  sessions.trade:
+    - [ny_lunch_pm]
+    - [ny_morning]
+    - [london_early]
+    - [asia]
+    - [asia, london_early, ny_morning, ny_lunch_pm]
+  entry.sides:
+    - [short]
+    - [long, short]
+  range.method: [rolling, adaptive]
+  range.window_minutes: [90, 120, 180]
+  range.min_width_points: [40, 50, 60, 75]
+  entry.edge_def: [pct, vah_val, hybrid]
+  entry.edge_pct: [0.10, 0.15, 0.20]
+  entry.max_overshoot_points: [5, 10, 15]
+  exit.tp_points: [10, 12.5, 15]
+  exit.stop_model: [edge_plus, excursion_plus, range_frac]
+  exit.stop_buffer_points: [7.5, 10, 12.5]
+  exit.stop_range_frac: [0.4, 0.5]
+  exit.max_stop_points: [25]
+  filters.max_day_move_pct: [0.5, 0.75]
+  filters.max_range_vs_prior_atr: [0.15, 0.3, 0.5]
+  filters.min_mid_crossings: [3, 6]
+  filters.extreme_extension_points: [10, 15, null]
+  filters.max_vwap_slope_points: [10, 20]
