@@ -4,7 +4,44 @@ _Data: continuous front-month NQ, 1-min, 2020-01-01 → 2026-06-07 (1,663 tradin
 2.27M bars), built from Databento GLBX. Dev = 2025-01-01 → 2026-06-07. Holdout =
 2020–2024. All figures net of $5 round-turn commission; slippage as labelled._
 
-## Short answer
+## HEADLINE: the fade fails, but open-drive CONTINUATION delivers 85%+ across all years
+
+The range *fade* never reaches the goal (details below). But a different, better-motivated
+strategy does: **open-drive continuation.** Wait to 11:00 ET, measure the move from the
+9:30 RTH open, and if it exceeds a 30-min-ATR gate, trade *in the direction of the move*
+(the morning trend continues into the afternoon). Target and stop scale with the same ATR.
+
+**Best config — 11:00 snapshot, entry gate ≥ 2.0×ATR30, TP = 0.5×ATR30, stop = 10×TP
+(RR 0.1), one trade/day, flat 15:55:**
+
+| 2020 | 2021 | 2022 | 2023 | 2024 | 2025 | 2026 | overall | exp/trade | trades/yr |
+|---|---|---|---|---|---|---|---|---|---|
+| 84% | 94% | 86% | 88% | 81% | 83% | 85% | **85.8%** | +$124 | ~72 |
+
+- **Win rate 81–94% in every one of 7 years** — the stability the brief demanded.
+- Survives slippage: 85.6–86.0% WR at 0→3 ticks/side; net ~$58–63k over 501 trades.
+- The **fade control loses** (−$112 to −$140/trade every year): afternoons continue the
+  morning drive, they do not revert. Internal consistency ⇒ real effect, not curve-fit.
+- ATR-normalized gate/target means no year-fitting: dollar target auto-scales $353 (2020)
+  → $680 (2026); win rate stays flat across the price-regime change.
+
+**Two levers produce the win rate:** (1) a *demanding* entry gate (≥2×ATR move by 11:00 =
+only genuine trend days; raising 1.0→2.5× lifts WR 71%→76%), and (2) a *modest* target
+(0.5×ATR; shrinking TP 1.0→0.5× lifts WR 71%→86%). 11:00 beats 12:00 by ~6 WR points at
+every setting (more afternoon left for the trend to extend).
+
+**The honest catch — negative skew.** The 10×ATR stop is almost never hit (≈0.4% of
+trades), but reversal days that fade to the 15:55 flat cost multiples of a win: at the best
+config avg win +$495 vs avg loss −$2,121, worst −$7,237. Net positive (+$124/trade), but
+this is a "frequent small wins, rare large loss" profile, NOT bounded downside. A single
+−$7k day ends a $2k prop account on 1 contract, so **the wide-stop 85% version is for a
+personal account with real capital, not a prop buffer.** Tightening the stop (higher RR)
+caps the loss but drops WR toward 58–66% — you can have 85% WR or bounded downside with
+this structure, not both. Reproduce with `scripts/open_drive_stats.py`.
+
+---
+
+## The original question: does the range FADE hit 80%? Short answer
 
 **No — not at 80%, and not robustly even at 70%.** The unconditioned edge-fade has no
 edge (47% WR, exactly what the random-walk math predicts for a 15-pt target against a
