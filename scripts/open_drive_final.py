@@ -75,7 +75,7 @@ def pf(p):
 df = load_ohlcv('data/NQ_continuous.parquet'); df = add_trading_day(df, 18)
 dall = filter_period(df, '2020-01-01', '2026-12-31')
 
-for snap in ['11:00', '12:00', '13:00']:
+for snap in ['10:00', '11:00', '12:00', '13:00']:
     t = run(dall, snap, gate=2.0, tp_mult=0.5, max_sl_pts=200)
     print("\n" + "=" * 64)
     print(f"  OPEN-DRIVE CONTINUATION  |  snapshot {snap}  |  gate 2.0xATR")
